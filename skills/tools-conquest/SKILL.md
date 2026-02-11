@@ -1,26 +1,50 @@
 ---
 name: tools-conquest
-description: Interact with Conquest.eth blockchain strategy game using the conquest CLI. Observe the universe, manage planets, send attack fleets, reinforce allies, acquire new territories, and exit to retrieve staked tokens.
+description: Interact with Conquest.eth, a persistent game of diplomacy, using the conquest CLI. Observe the universe, manage planets, send attack fleets, reinforce allies, acquire new territories, and exit to retrieve staked tokens.
 compatibility: Requires Node.js and npm. Network access needed for RPC calls to Gnosis Chain.
 ---
 
 # tools-conquest CLI
 
-Use `conquest` to interact with Conquest.eth, a persistent blockchain strategy game where you stake tokens to control planets and send fleets to attack enemies.
+Use `conquest` to interact with Conquest.eth, a persistent game of diplomacy where you stake tokens to control planets and send fleets to attack enemies.
 
-## HEARTBEAT
+## ⚠️ IMPORTANT: Add to Your HEARTBEAT
 
-You are responsible for ensuring fleets resolve in time. On every heartbeat, you must verify their status and resolve them if needed.
+**You must update your `HEARTBEAT.md` file to regularly check Conquest!** Add the following section:
+
+```markdown
+## Conquest (every heartbeat)
+Check and actively play on Conquest:
+1. Check pending fleets and resolve any that have arrived
+2. Look for attack opportunities (weak enemies, high-value targets)
+3. Execute attacks using @conquest-eth/tools@0.0.7
+
+**Config:** (Replace with your values)
+- RPC: https://rpc.gnosischain.com (or your network)
+- Game Contract: 0x322813fd9a801c5507c9de605d63cea4f2ce6c44 (or your contract)
+- Wallet: {YOUR_WALLET_ADDRESS}
+
+**Priority:**
+1. **Resolve fleets** - Fleets expire if not resolved in time!
+2. **Find targets** - Look for weak planets nearby
+3. **Simulate attacks** - Verify success before committing
+4. **Send fleets** - Execute profitable attacks
+```
+
+**Why this matters:**
+- Fleets have a resolve window (~12 hours) - miss it and they're lost
+- Attack opportunities appear and disappear as ships accumulate
+- Regular monitoring prevents losses and maximizes gains
 
 ## Quick Start
 
 ```bash
 # Option 1: Use npx (no install required)
-npx -y @conquest-eth/tools@0.0.1 get_planets_arround --center 0,0 --radius 25
+npx -y @conquest-eth/tools@0.0.7 get_planets_around --center 0,0 --radius 25
 
 # Option 2: Install globally
-npm install -g @conquest-eth/tools@0.0.1 # or use pnpm/volta/...
-conquest --rpc-url http://localhost:8545 and --game-contract 0x322813fd9a801c5507c9de605d63cea4f2ce6c44 get_planets_arround --center 0,0 --radius 25
+npm install -g @conquest-eth/tools@0.0.7 # or use pnpm/volta/...
+conquest --rpc-url http://localhost:8545 --game-contract 0x322813fd9a801c5507c9de605d63cea4f2ce6c44 get_planets_around --center 0,0 --radius 25
 ```
 
 ### Configuration
@@ -36,7 +60,7 @@ export GAME_CONTRACT=0x322813fd9a801c5507c9de605d63cea4f2ce6c44
 export PRIVATE_KEY=0x...
 
 # Query example
-conquest get_planets_arround --center 0,0 --radius 25
+conquest get_planets_around --center 0,0 --radius 25
 ```
 
 Or by using .env / .env.local file that the CLI reads automatically.
@@ -44,6 +68,10 @@ Or by using .env / .env.local file that the CLI reads automatically.
 All commands output JSON. Parse with `jq` or process programmatically.
 
 ---
+
+### PRIVATE_KEY required to play
+
+Note that you will need a private key, you can generate one but do not forget to store it safely. And you might not have native token, so you might need to ask for the human to send you some, give them your address.
 
 ## Commands Overview
 
@@ -70,8 +98,8 @@ All commands output JSON. Parse with `jq` or process programmatically.
 ### Get Your Planets
 
 ```bash
-conquest get_planets_arround --center 0,0 --radius 25 --only me
-# Output: { "planets": [{ "planetId": "123", "location": {"x": 10, "y": 20}, "numSpaceships": 5000, ... }] }
+conquest get_planets_around --center 0,0 --radius 25 --only me
+# Output: { "planets": [{ "planetId": "123", "location": {"x": 10, "y": 20}, "state": {"numSpaceships": 5000, "owner": "0x..."}, "stats": {...} }] }
 ```
 
 **Parameters:**
@@ -81,7 +109,7 @@ conquest get_planets_arround --center 0,0 --radius 25 --only me
 ### Find Planets Around a Location
 
 ```bash
-conquest --rpc-url http://localhost:8545 and --game-contract 0x322813fd9a801c5507c9de605d63cea4f2ce6c44 get_planets_around --center 10,20 --radius 25
+conquest --rpc-url http://localhost:8545 --game-contract 0x322813fd9a801c5507c9de605d63cea4f2ce6c44 get_planets_around --center 10,20 --radius 25
 # Returns planets with distances, owners, and stats
 ```
 
@@ -392,7 +420,7 @@ attackDamage = (attackFactor * attack) / defense / 1000000
 conquest get_planets_around --center 0,0 --radius 50 --only me
 
 # Find unclaimed planets nearby
-conquest get_planets_around --center 10,20 --radius 15 | jq '.planets[] | select(.owner == "0x0000000000000000000000000000000000000000")'
+conquest get_planets_around --center 10,20 --radius 15 | jq '.planets[] | select(.state.owner == "0x0000000000000000000000000000000000000000")'
 
 # Acquire new territory
 conquest acquire_planets --coordinates "12,22 18,28"
@@ -460,16 +488,16 @@ conquest verify_exit_status --x 10 --y 20
 
 ```bash
 # Filter planets with lots of spaceships
-conquest get_planets_arround --center 0,0 --radius 25 | jq '.planets[] | select(.numSpaceships > 1000)'
+conquest get_planets_around --center 0,0 --radius 25 | jq '.planets[] | select(.state.numSpaceships > 1000)'
 
 # Count total planets
-conquest get_planets_arround --center 0,0 --radius 50 | jq '.planets | length'
+conquest get_planets_around --center 0,0 --radius 50 | jq '.planets | length'
 
 # Get fleet IDs only
 conquest get_pending_fleets | jq '.fleets[].fleetId'
 
 # Find unowned planets
-conquest get_planets_around --center 0,0 --radius 30 | jq '.planets[] | select(.owner == "0x0000000000000000000000000000000000000000")'
+conquest get_planets_around --center 0,0 --radius 30 | jq '.planets[] | select(.state.owner == "0x0000000000000000000000000000000000000000")'
 ```
 
 ---
@@ -515,7 +543,7 @@ Without private key, only read commands work:
 conquest get_planets_around --center 0,0 --radius 20
 
 # Requires PRIVATE_KEY:
-conquest get_planets_arround --center 0,0 --only me
+conquest get_planets_around --center 0,0 --only me
 conquest acquire_planets --coordinates "10,20"
 conquest send_fleet --from 10,20 --to 15,25 --quantity 100
 ```
